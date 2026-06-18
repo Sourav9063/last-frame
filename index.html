@@ -93,7 +93,7 @@
                 <div id="processing" data-hidden="true" class="absolute inset-0 grid place-items-center bg-ink/85 text-white backdrop-blur-sm">
                   <div class="text-center">
                     <span class="mx-auto mb-4 block h-8 w-8 animate-spin rounded-full border-2 border-white/25 border-t-lime"></span>
-                    <p class="font-medium">Finding the final frame…</p>
+                    <p class="font-medium">Processing frame…</p>
                   </div>
                 </div>
               </div>
@@ -111,13 +111,36 @@
               <p id="errorMessage" data-hidden="true" role="alert" class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
 
               <button id="extractButton" type="button" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 py-4 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-ink/90 disabled:cursor-wait disabled:opacity-60">
-                <span>Extract last frame</span>
+                <span>Process frame</span>
                 <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"></path></svg>
               </button>
-              <a id="downloadButton" data-hidden="true" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-lime px-5 py-4 font-semibold text-ink transition hover:-translate-y-0.5 hover:brightness-95">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 19h14"></path></svg>
-                <span>Download full-quality PNG</span>
-              </a>
+
+              <div id="resultActions" data-hidden="true" class="mt-5 grid gap-3 sm:grid-cols-2">
+                <a id="lastFrameDownload" class="flex items-center justify-center gap-2 rounded-2xl bg-lime px-4 py-4 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:brightness-95">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 19h14"></path></svg>
+                  <span>Download last frame</span>
+                </a>
+                <button id="selectFrameButton" type="button" class="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-4 py-4 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-ink/30">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M4 17h16M17 4v6M9 14v6"></path></svg>
+                  <span>Select a frame</span>
+                </button>
+              </div>
+
+              <div id="frameSelector" data-hidden="true" class="mt-5 rounded-2xl border border-ink/10 bg-cream/70 p-4 sm:p-5">
+                <div class="mb-3 flex items-center justify-between gap-4">
+                  <label for="frameSlider" class="text-sm font-semibold">Choose your moment</label>
+                  <output id="frameTime" for="frameSlider" class="rounded-full bg-white px-3 py-1 font-mono text-xs font-semibold text-ink/60">0:00.000</output>
+                </div>
+                <input id="frameSlider" type="range" min="0" max="1000" value="500" class="h-2 w-full cursor-pointer appearance-none rounded-full bg-ink/15 accent-ink" aria-label="Select a frame from the video" />
+                <div class="mt-2 flex justify-between text-[11px] font-medium text-ink/40">
+                  <span>Start</span>
+                  <span id="videoEndTime">End</span>
+                </div>
+                <a id="selectedFrameDownload" data-hidden="true" class="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-ink/90">
+                  <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 19h14"></path></svg>
+                  <span>Download selected frame</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -142,12 +165,22 @@
       const fileMeta = document.querySelector("#fileMeta");
       const errorMessage = document.querySelector("#errorMessage");
       const extractButton = document.querySelector("#extractButton");
-      const downloadButton = document.querySelector("#downloadButton");
+      const resultActions = document.querySelector("#resultActions");
+      const lastFrameDownload = document.querySelector("#lastFrameDownload");
+      const selectFrameButton = document.querySelector("#selectFrameButton");
+      const frameSelector = document.querySelector("#frameSelector");
+      const frameSlider = document.querySelector("#frameSlider");
+      const frameTime = document.querySelector("#frameTime");
+      const videoEndTime = document.querySelector("#videoEndTime");
+      const selectedFrameDownload = document.querySelector("#selectedFrameDownload");
       const resetButton = document.querySelector("#resetButton");
 
       let videoUrl = null;
-      let frameUrl = null;
+      let lastFrameUrl = null;
+      let selectedFrameUrl = null;
       let selectedFile = null;
+      let selectionTimer = null;
+      let selectionQueue = Promise.resolve();
 
       const setHidden = (element, hidden) => element.dataset.hidden = String(hidden);
       const formatBytes = (bytes) => {
@@ -161,9 +194,14 @@
         const remaining = Math.floor(seconds % 60).toString().padStart(2, "0");
         return `${minutes}:${remaining}`;
       };
-      const safeFileName = (name) => {
+      const formatTimestamp = (seconds) => {
+        const minutes = Math.floor(seconds / 60);
+        const remaining = (seconds % 60).toFixed(3).padStart(6, "0");
+        return `${minutes}:${remaining}`;
+      };
+      const safeFileName = (name, suffix = "last-frame") => {
         const base = name.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "");
-        return `${base || "video"}-last-frame.png`;
+        return `${base || "video"}-${suffix}.png`;
       };
 
       function showError(message) {
@@ -172,12 +210,17 @@
       }
 
       function clearResult() {
-        if (frameUrl) URL.revokeObjectURL(frameUrl);
-        frameUrl = null;
+        if (lastFrameUrl) URL.revokeObjectURL(lastFrameUrl);
+        if (selectedFrameUrl) URL.revokeObjectURL(selectedFrameUrl);
+        lastFrameUrl = null;
+        selectedFrameUrl = null;
+        clearTimeout(selectionTimer);
         framePreview.removeAttribute("src");
         framePreview.classList.add("hidden");
         videoPreviewWrap.classList.remove("hidden");
-        setHidden(downloadButton, true);
+        setHidden(resultActions, true);
+        setHidden(frameSelector, true);
+        setHidden(selectedFrameDownload, true);
         setHidden(errorMessage, true);
       }
 
@@ -217,6 +260,7 @@
             return;
           }
           fileMeta.textContent = `${video.videoWidth} × ${video.videoHeight} · ${formatDuration(video.duration)} · ${formatBytes(file.size)}`;
+          videoEndTime.textContent = formatDuration(video.duration);
           extractButton.disabled = false;
         }, { once: true });
 
@@ -226,8 +270,24 @@
         }, { once: true });
       }
 
+      async function captureFrame(time) {
+        await seekTo(Math.min(Math.max(0, time), Math.max(0, video.duration - 0.001)));
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d", { alpha: false });
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return new Promise((resolve, reject) => {
+          canvas.toBlob((result) => result ? resolve(result) : reject(new Error("PNG creation failed.")), "image/png");
+        });
+      }
+
       function seekTo(time) {
         return new Promise((resolve, reject) => {
+          if (Math.abs(video.currentTime - time) < 0.0005 && video.readyState >= 2) {
+            resolve();
+            return;
+          }
           const timeout = window.setTimeout(() => {
             cleanup();
             reject(new Error("Seeking took too long."));
@@ -253,25 +313,15 @@
         try {
           video.pause();
           const finalTime = Math.max(0, video.duration - 0.001);
-          await seekTo(finalTime);
+          const blob = await captureFrame(finalTime);
 
-          const canvas = document.createElement("canvas");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const context = canvas.getContext("2d", { alpha: false });
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          const blob = await new Promise((resolve, reject) => {
-            canvas.toBlob((result) => result ? resolve(result) : reject(new Error("PNG creation failed.")), "image/png");
-          });
-
-          frameUrl = URL.createObjectURL(blob);
-          framePreview.src = frameUrl;
+          lastFrameUrl = URL.createObjectURL(blob);
+          framePreview.src = lastFrameUrl;
           framePreview.classList.remove("hidden");
           videoPreviewWrap.classList.add("hidden");
-          downloadButton.href = frameUrl;
-          downloadButton.download = safeFileName(selectedFile.name);
-          setHidden(downloadButton, false);
+          lastFrameDownload.href = lastFrameUrl;
+          lastFrameDownload.download = safeFileName(selectedFile.name);
+          setHidden(resultActions, false);
           extractButton.classList.add("hidden");
         } catch (error) {
           showError(error.message || "The last frame could not be extracted.");
@@ -281,10 +331,46 @@
         }
       }
 
+      async function renderSelectedFrame() {
+        const time = (Number(frameSlider.value) / 1000) * video.duration;
+        frameTime.value = formatTimestamp(time);
+        setHidden(selectedFrameDownload, true);
+        setHidden(processing, false);
+
+        try {
+          const blob = await captureFrame(time);
+          if (selectedFrameUrl) URL.revokeObjectURL(selectedFrameUrl);
+          selectedFrameUrl = URL.createObjectURL(blob);
+          framePreview.src = selectedFrameUrl;
+          selectedFrameDownload.href = selectedFrameUrl;
+          selectedFrameDownload.download = safeFileName(selectedFile.name, `frame-${formatTimestamp(time).replace(/[:.]/g, "-")}`);
+          setHidden(selectedFrameDownload, false);
+        } catch (error) {
+          showError(error.message || "This frame could not be extracted.");
+        } finally {
+          setHidden(processing, true);
+        }
+      }
+
       input.addEventListener("change", () => loadFile(input.files[0]));
       extractButton.addEventListener("click", extractFrame);
+      selectFrameButton.addEventListener("click", () => {
+        if (frameSelector.dataset.hidden === "false") return;
+        setHidden(frameSelector, false);
+        selectFrameButton.setAttribute("aria-expanded", "true");
+        selectionQueue = selectionQueue.then(renderSelectedFrame);
+      });
+      frameSlider.addEventListener("input", () => {
+        const time = (Number(frameSlider.value) / 1000) * video.duration;
+        frameTime.value = formatTimestamp(time);
+        clearTimeout(selectionTimer);
+        selectionTimer = setTimeout(() => {
+          selectionQueue = selectionQueue.then(renderSelectedFrame);
+        }, 120);
+      });
       resetButton.addEventListener("click", () => {
         extractButton.classList.remove("hidden");
+        selectFrameButton.setAttribute("aria-expanded", "false");
         reset();
       });
 
@@ -303,7 +389,8 @@
       dropZone.addEventListener("drop", (event) => loadFile(event.dataTransfer.files[0]));
       window.addEventListener("beforeunload", () => {
         if (videoUrl) URL.revokeObjectURL(videoUrl);
-        if (frameUrl) URL.revokeObjectURL(frameUrl);
+        if (lastFrameUrl) URL.revokeObjectURL(lastFrameUrl);
+        if (selectedFrameUrl) URL.revokeObjectURL(selectedFrameUrl);
       });
     </script>
   </body>

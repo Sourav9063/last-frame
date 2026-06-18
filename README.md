@@ -1,6 +1,6 @@
 # Last Frame
 
-A private, mobile-first video frame extractor that runs entirely in the browser. Choose a video, extract its final decodable frame, and download it as a full-resolution PNG.
+A private, mobile-first video frame extractor that runs entirely in the browser. Download the final frame immediately or choose any favorite moment with a timeline slider.
 
 ![No backend](https://img.shields.io/badge/backend-none-17211b)
 ![Processing](https://img.shields.io/badge/processing-on--device-d8ff66)
@@ -11,6 +11,7 @@ A private, mobile-first video frame extractor that runs entirely in the browser.
 - Fully client-side processing—videos are never uploaded
 - Native video dimensions preserved in the exported image
 - Lossless PNG output
+- Interactive frame selector with timestamp preview
 - Mobile-first, responsive interface
 - Tap-to-select and desktop drag-and-drop
 - No framework, build tool, account, or server required
@@ -26,8 +27,9 @@ python3 -m http.server 8080
 Then visit `http://localhost:8080`.
 
 1. Choose or drop a video.
-2. Select **Extract last frame**.
-3. Preview the result and select **Download full-quality PNG**.
+2. Select **Process frame**.
+3. Download the last frame, or select **Select a frame**.
+4. Move the timeline slider to a favorite moment and download the selected frame.
 
 ## How it works
 
