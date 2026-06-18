@@ -219,6 +219,7 @@
       let selectionTimer = null;
       let selectionQueue = Promise.resolve();
       let selectedTime = 0;
+      let isCapturingFrame = false;
 
       const setHidden = (element, hidden) => element.dataset.hidden = String(hidden);
       const formatBytes = (bytes) => {
@@ -262,6 +263,7 @@
         framePreview.removeAttribute("src");
         framePreview.classList.add("hidden");
         videoPreviewWrap.classList.remove("hidden");
+        video.controls = false;
         setHidden(resultActions, true);
         setHidden(frameSelector, true);
         setHidden(lastFrameDownload, true);
@@ -314,7 +316,12 @@
       }
 
       async function captureFrame(time) {
-        await seekTo(Math.min(Math.max(0, time), Math.max(0, video.duration - 0.001)));
+        isCapturingFrame = true;
+        try {
+          await seekTo(Math.min(Math.max(0, time), Math.max(0, video.duration - 0.001)));
+        } finally {
+          isCapturingFrame = false;
+        }
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -405,12 +412,18 @@
         if (frameSelector.dataset.hidden === "false") return;
         setHidden(frameSelector, false);
         selectFrameButton.setAttribute("aria-expanded", "true");
+        framePreview.classList.add("hidden");
+        videoPreviewWrap.classList.remove("hidden");
+        video.controls = true;
         selectedTime = video.duration / 2;
+        frameSlider.value = 500;
         selectionQueue = selectionQueue.then(renderSelectedFrame);
       });
       frameSlider.addEventListener("input", () => {
         selectedTime = (Number(frameSlider.value) / 1000) * video.duration;
         frameTime.value = formatTimestamp(selectedTime);
+        video.currentTime = Math.min(selectedTime, Math.max(0, video.duration - 0.001));
+        video.pause();
         clearTimeout(selectionTimer);
         selectionTimer = setTimeout(() => {
           selectionQueue = selectionQueue.then(renderSelectedFrame);
@@ -420,11 +433,29 @@
         selectedTime = Math.min(Math.max(0, selectedTime + direction / 30), Math.max(0, video.duration - 0.001));
         frameSlider.value = Math.round((selectedTime / video.duration) * 1000);
         frameTime.value = formatTimestamp(selectedTime);
+        video.currentTime = selectedTime;
+        video.pause();
         clearTimeout(selectionTimer);
         selectionQueue = selectionQueue.then(renderSelectedFrame);
       }
       previousFrameButton.addEventListener("click", () => stepFrame(-1));
       nextFrameButton.addEventListener("click", () => stepFrame(1));
+      video.addEventListener("pause", () => {
+        if (frameSelector.dataset.hidden !== "false" || video.readyState < 2) return;
+        selectedTime = video.currentTime;
+        frameSlider.value = Math.round((selectedTime / video.duration) * 1000);
+        frameTime.value = formatTimestamp(selectedTime);
+        clearTimeout(selectionTimer);
+        selectionQueue = selectionQueue.then(renderSelectedFrame);
+      });
+      video.addEventListener("seeked", () => {
+        if (frameSelector.dataset.hidden !== "false" || video.readyState < 2 || isCapturingFrame) return;
+        selectedTime = video.currentTime;
+        frameSlider.value = Math.round((selectedTime / video.duration) * 1000);
+        frameTime.value = formatTimestamp(selectedTime);
+        clearTimeout(selectionTimer);
+        selectionQueue = selectionQueue.then(renderSelectedFrame);
+      });
       resetButton.addEventListener("click", () => {
         selectFrameButton.setAttribute("aria-expanded", "false");
         reset();
