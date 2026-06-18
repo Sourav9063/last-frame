@@ -3,8 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Extract any frame from a video privately in your browser." />
-    <title>Last Frame — Video frame extractor</title>
+    <title>Video Frame Download Tool — Last Frame</title>
+    <meta name="description" content="Download any frame from a video as a full-resolution PNG. Free, private video frame extractor that works locally in your browser with no upload." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#f6f4ed" />
+    <link rel="canonical" href="https://sourav9063.github.io/last-frame/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Last Frame" />
+    <meta property="og:title" content="Video Frame Download Tool — Last Frame" />
+    <meta property="og:description" content="Download any video frame as a full-resolution PNG. Free, private, and processed entirely in your browser." />
+    <meta property="og:url" content="https://sourav9063.github.io/last-frame/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Video Frame Download Tool — Last Frame" />
+    <meta name="twitter:description" content="Download any video frame as a full-resolution PNG—free and private." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Last Frame",
+        "url": "https://sourav9063.github.io/last-frame/",
+        "description": "A free, private video frame download tool that extracts any frame as a full-resolution PNG in your browser.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and HTML5 video support",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -53,12 +83,12 @@
 
       <section class="grid flex-1 items-center gap-6 pb-8 pt-3 sm:gap-10 sm:pb-14 sm:pt-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
         <div>
-          <p class="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-ink/50 sm:mb-4">Private video tool</p>
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-ink/50 sm:mb-4">Free video frame download tool</p>
           <h1 class="max-w-xl text-4xl font-semibold leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-            Keep any<br />moment.
+            Download any<br />video frame.
           </h1>
           <p class="mt-3 max-w-md text-base leading-7 text-ink/60 sm:mt-6 sm:text-lg">
-            Turn any frame from a browser-supported video into a full-resolution PNG. Nothing leaves your device.
+            Extract any frame from a browser-supported video as a full-resolution PNG. Free, private, and processed on your device.
           </p>
           <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/55 sm:mt-7 sm:gap-y-3">
             <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-ink"></span>No upload</span>
@@ -86,7 +116,7 @@
           <div id="workspace" data-hidden="true">
             <div class="checkerboard relative overflow-hidden rounded-[1.25rem]">
               <div class="flex min-h-[260px] items-center justify-center sm:min-h-[360px]">
-                <img id="framePreview" class="hidden max-h-[520px] w-full object-contain" alt="Extracted final video frame" />
+                <img id="framePreview" class="hidden max-h-[520px] w-full object-contain" alt="Extracted video frame ready to download" />
                 <div id="videoPreviewWrap" class="w-full">
                   <video id="video" class="max-h-[520px] min-h-[260px] w-full bg-black object-contain sm:min-h-[360px]" playsinline muted preload="metadata"></video>
                 </div>
