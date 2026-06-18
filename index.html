@@ -110,11 +110,6 @@
 
               <p id="errorMessage" data-hidden="true" role="alert" class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
 
-              <button id="extractButton" type="button" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 py-4 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-ink/90 disabled:cursor-wait disabled:opacity-60">
-                <span>Process frame</span>
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"></path></svg>
-              </button>
-
               <div id="resultActions" data-hidden="true" class="mt-5">
                 <button id="selectFrameButton" type="button" class="flex w-full items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-4 py-4 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-ink/30">
                   <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M4 17h16M17 4v6M9 14v6"></path></svg>
@@ -175,7 +170,6 @@
       const fileName = document.querySelector("#fileName");
       const fileMeta = document.querySelector("#fileMeta");
       const errorMessage = document.querySelector("#errorMessage");
-      const extractButton = document.querySelector("#extractButton");
       const resultActions = document.querySelector("#resultActions");
       const lastFrameDownload = document.querySelector("#lastFrameDownload");
       const selectFrameButton = document.querySelector("#selectFrameButton");
@@ -277,17 +271,15 @@
         video.addEventListener("loadedmetadata", () => {
           if (!Number.isFinite(video.duration) || !video.videoWidth || !video.videoHeight) {
             showError("This video could not be decoded by your browser. Try MP4 (H.264) or WebM.");
-            extractButton.disabled = true;
             return;
           }
           fileMeta.textContent = `${video.videoWidth} × ${video.videoHeight} · ${formatDuration(video.duration)} · ${formatBytes(file.size)}`;
           videoEndTime.textContent = formatDuration(video.duration);
-          extractButton.disabled = false;
+          extractFrame();
         }, { once: true });
 
         video.addEventListener("error", () => {
           showError("This video format or codec is not supported by your browser.");
-          extractButton.disabled = true;
         }, { once: true });
       }
 
@@ -328,7 +320,6 @@
 
       async function extractFrame() {
         clearResult();
-        extractButton.disabled = true;
         setHidden(processing, false);
 
         try {
@@ -344,11 +335,9 @@
           lastFrameDownload.download = safeFileName(selectedFile.name);
           setHidden(resultActions, false);
           setHidden(lastFrameDownload, false);
-          extractButton.classList.add("hidden");
         } catch (error) {
           showError(error.message || "The last frame could not be extracted.");
         } finally {
-          extractButton.disabled = false;
           setHidden(processing, true);
         }
       }
@@ -382,7 +371,6 @@
       }
 
       input.addEventListener("change", () => loadFile(input.files[0]));
-      extractButton.addEventListener("click", extractFrame);
       selectFrameButton.addEventListener("click", () => {
         if (frameSelector.dataset.hidden === "false") return;
         setHidden(frameSelector, false);
@@ -408,7 +396,6 @@
       previousFrameButton.addEventListener("click", () => stepFrame(-1));
       nextFrameButton.addEventListener("click", () => stepFrame(1));
       resetButton.addEventListener("click", () => {
-        extractButton.classList.remove("hidden");
         selectFrameButton.setAttribute("aria-expanded", "false");
         reset();
       });
