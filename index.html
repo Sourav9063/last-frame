@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Extract the final frame from a video privately in your browser." />
+    <title>Last Frame — Video frame extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: "#17211b",
+              cream: "#f6f4ed",
+              lime: "#d8ff66",
+            },
+            boxShadow: {
+              soft: "0 24px 70px -30px rgba(23, 33, 27, 0.35)",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      [data-hidden="true"] { display: none !important; }
+      .checkerboard {
+        background-color: #e9e7df;
+        background-image: linear-gradient(45deg, #dedbd2 25%, transparent 25%),
+          linear-gradient(-45deg, #dedbd2 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #dedbd2 75%),
+          linear-gradient(-45deg, transparent 75%, #dedbd2 75%);
+        background-size: 20px 20px;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-cream text-ink antialiased selection:bg-lime">
+    <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-10">
+      <header class="flex items-center justify-between">
+        <a href="." class="flex items-center gap-2.5 font-semibold tracking-tight" aria-label="Last Frame home">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-ink text-lime">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="4" y="5" width="13" height="14" rx="2"></rect>
+              <path d="m10 10 4 2.5-4 2.5v-5Z" fill="currentColor" stroke="none"></path>
+              <path d="M20 8v8"></path>
+            </svg>
+          </span>
+          <span>Last Frame</span>
+        </a>
+        <span class="rounded-full border border-ink/10 bg-white/70 px-3 py-1.5 text-xs font-medium text-ink/60">100% local</span>
+      </header>
+
+      <section class="grid flex-1 items-center gap-10 py-14 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
+        <div>
+          <p class="mb-4 text-xs font-bold uppercase tracking-[0.22em] text-ink/50">Private video tool</p>
+          <h1 class="max-w-xl text-4xl font-semibold leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+            Keep the<br />last moment.
+          </h1>
+          <p class="mt-6 max-w-md text-base leading-7 text-ink/60 sm:text-lg">
+            Turn the final frame of any browser-supported video into a full-resolution PNG. Nothing leaves your device.
+          </p>
+          <div class="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm text-ink/55">
+            <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-ink"></span>No upload</span>
+            <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-ink"></span>No quality loss</span>
+            <span class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-ink"></span>No account</span>
+          </div>
+        </div>
+
+        <div class="overflow-hidden rounded-[1.75rem] border border-ink/10 bg-white p-3 shadow-soft sm:p-4">
+          <div id="uploadPanel" class="relative">
+            <input id="videoInput" class="sr-only" type="file" accept="video/*" />
+            <label id="dropZone" for="videoInput" class="group flex min-h-[340px] cursor-pointer flex-col items-center justify-center rounded-[1.25rem] border-2 border-dashed border-ink/15 bg-cream/60 px-6 py-12 text-center transition hover:border-ink/35 hover:bg-lime/10 sm:min-h-[430px]">
+              <span class="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-ink text-lime transition-transform group-hover:-translate-y-1">
+                <svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"></path>
+                  <path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path>
+                </svg>
+              </span>
+              <span class="text-xl font-semibold tracking-tight">Choose a video</span>
+              <span class="mt-2 max-w-xs text-sm leading-6 text-ink/50">Tap to browse, or drop a file here on desktop</span>
+              <span class="mt-6 rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-medium text-ink/50">MP4 · WebM · MOV*</span>
+            </label>
+          </div>
+
+          <div id="workspace" data-hidden="true">
+            <div class="checkerboard relative overflow-hidden rounded-[1.25rem]">
+              <div class="flex min-h-[260px] items-center justify-center sm:min-h-[360px]">
+                <img id="framePreview" class="hidden max-h-[520px] w-full object-contain" alt="Extracted final video frame" />
+                <div id="videoPreviewWrap" class="w-full">
+                  <video id="video" class="max-h-[520px] min-h-[260px] w-full bg-black object-contain sm:min-h-[360px]" playsinline muted preload="metadata"></video>
+                </div>
+                <div id="processing" data-hidden="true" class="absolute inset-0 grid place-items-center bg-ink/85 text-white backdrop-blur-sm">
+                  <div class="text-center">
+                    <span class="mx-auto mb-4 block h-8 w-8 animate-spin rounded-full border-2 border-white/25 border-t-lime"></span>
+                    <p class="font-medium">Finding the final frame…</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="px-1 pb-1 pt-5 sm:px-2">
+              <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                  <p id="fileName" class="truncate font-semibold"></p>
+                  <p id="fileMeta" class="mt-1 text-xs text-ink/50"></p>
+                </div>
+                <button id="resetButton" type="button" class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-ink/55 transition hover:bg-ink/5 hover:text-ink">Change</button>
+              </div>
+
+              <p id="errorMessage" data-hidden="true" role="alert" class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"></p>
+
+              <button id="extractButton" type="button" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 py-4 font-semibold text-white transition hover:-translate-y-0.5 hover:bg-ink/90 disabled:cursor-wait disabled:opacity-60">
+                <span>Extract last frame</span>
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"></path></svg>
+              </button>
+              <a id="downloadButton" data-hidden="true" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-lime px-5 py-4 font-semibold text-ink transition hover:-translate-y-0.5 hover:brightness-95">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 19h14"></path></svg>
+                <span>Download full-quality PNG</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="flex flex-col gap-2 border-t border-ink/10 py-5 text-xs text-ink/45 sm:flex-row sm:items-center sm:justify-between">
+        <p>Your video is processed entirely in this browser.</p>
+        <p>*Format support depends on your browser.</p>
+      </footer>
+    </main>
+
+    <script>
+      const input = document.querySelector("#videoInput");
+      const dropZone = document.querySelector("#dropZone");
+      const uploadPanel = document.querySelector("#uploadPanel");
+      const workspace = document.querySelector("#workspace");
+      const video = document.querySelector("#video");
+      const videoPreviewWrap = document.querySelector("#videoPreviewWrap");
+      const framePreview = document.querySelector("#framePreview");
+      const processing = document.querySelector("#processing");
+      const fileName = document.querySelector("#fileName");
+      const fileMeta = document.querySelector("#fileMeta");
+      const errorMessage = document.querySelector("#errorMessage");
+      const extractButton = document.querySelector("#extractButton");
+      const downloadButton = document.querySelector("#downloadButton");
+      const resetButton = document.querySelector("#resetButton");
+
+      let videoUrl = null;
+      let frameUrl = null;
+      let selectedFile = null;
+
+      const setHidden = (element, hidden) => element.dataset.hidden = String(hidden);
+      const formatBytes = (bytes) => {
+        if (!bytes) return "0 B";
+        const units = ["B", "KB", "MB", "GB"];
+        const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
+      };
+      const formatDuration = (seconds) => {
+        const minutes = Math.floor(seconds / 60);
+        const remaining = Math.floor(seconds % 60).toString().padStart(2, "0");
+        return `${minutes}:${remaining}`;
+      };
+      const safeFileName = (name) => {
+        const base = name.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "");
+        return `${base || "video"}-last-frame.png`;
+      };
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        setHidden(errorMessage, false);
+      }
+
+      function clearResult() {
+        if (frameUrl) URL.revokeObjectURL(frameUrl);
+        frameUrl = null;
+        framePreview.removeAttribute("src");
+        framePreview.classList.add("hidden");
+        videoPreviewWrap.classList.remove("hidden");
+        setHidden(downloadButton, true);
+        setHidden(errorMessage, true);
+      }
+
+      function reset() {
+        clearResult();
+        if (videoUrl) URL.revokeObjectURL(videoUrl);
+        videoUrl = null;
+        selectedFile = null;
+        video.removeAttribute("src");
+        video.load();
+        input.value = "";
+        setHidden(workspace, true);
+        setHidden(uploadPanel, false);
+      }
+
+      function loadFile(file) {
+        if (!file || !file.type.startsWith("video/")) {
+          setHidden(uploadPanel, true);
+          setHidden(workspace, false);
+          showError("Please choose a valid video file.");
+          return;
+        }
+
+        reset();
+        selectedFile = file;
+        videoUrl = URL.createObjectURL(file);
+        fileName.textContent = file.name;
+        fileMeta.textContent = `${formatBytes(file.size)} · Reading video details…`;
+        video.src = videoUrl;
+        setHidden(uploadPanel, true);
+        setHidden(workspace, false);
+
+        video.addEventListener("loadedmetadata", () => {
+          if (!Number.isFinite(video.duration) || !video.videoWidth || !video.videoHeight) {
+            showError("This video could not be decoded by your browser. Try MP4 (H.264) or WebM.");
+            extractButton.disabled = true;
+            return;
+          }
+          fileMeta.textContent = `${video.videoWidth} × ${video.videoHeight} · ${formatDuration(video.duration)} · ${formatBytes(file.size)}`;
+          extractButton.disabled = false;
+        }, { once: true });
+
+        video.addEventListener("error", () => {
+          showError("This video format or codec is not supported by your browser.");
+          extractButton.disabled = true;
+        }, { once: true });
+      }
+
+      function seekTo(time) {
+        return new Promise((resolve, reject) => {
+          const timeout = window.setTimeout(() => {
+            cleanup();
+            reject(new Error("Seeking took too long."));
+          }, 12000);
+          const cleanup = () => {
+            clearTimeout(timeout);
+            video.removeEventListener("seeked", onSeeked);
+            video.removeEventListener("error", onError);
+          };
+          const onSeeked = () => { cleanup(); resolve(); };
+          const onError = () => { cleanup(); reject(new Error("The video could not be decoded.")); };
+          video.addEventListener("seeked", onSeeked, { once: true });
+          video.addEventListener("error", onError, { once: true });
+          video.currentTime = time;
+        });
+      }
+
+      async function extractFrame() {
+        clearResult();
+        extractButton.disabled = true;
+        setHidden(processing, false);
+
+        try {
+          video.pause();
+          const finalTime = Math.max(0, video.duration - 0.001);
+          await seekTo(finalTime);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const context = canvas.getContext("2d", { alpha: false });
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob((result) => result ? resolve(result) : reject(new Error("PNG creation failed.")), "image/png");
+          });
+
+          frameUrl = URL.createObjectURL(blob);
+          framePreview.src = frameUrl;
+          framePreview.classList.remove("hidden");
+          videoPreviewWrap.classList.add("hidden");
+          downloadButton.href = frameUrl;
+          downloadButton.download = safeFileName(selectedFile.name);
+          setHidden(downloadButton, false);
+          extractButton.classList.add("hidden");
+        } catch (error) {
+          showError(error.message || "The last frame could not be extracted.");
+        } finally {
+          extractButton.disabled = false;
+          setHidden(processing, true);
+        }
+      }
+
+      input.addEventListener("change", () => loadFile(input.files[0]));
+      extractButton.addEventListener("click", extractFrame);
+      resetButton.addEventListener("click", () => {
+        extractButton.classList.remove("hidden");
+        reset();
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.add("border-ink", "bg-lime/20");
+        });
+      });
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("border-ink", "bg-lime/20");
+        });
+      });
+      dropZone.addEventListener("drop", (event) => loadFile(event.dataTransfer.files[0]));
+      window.addEventListener("beforeunload", () => {
+        if (videoUrl) URL.revokeObjectURL(videoUrl);
+        if (frameUrl) URL.revokeObjectURL(frameUrl);
+      });
+    </script>
+  </body>
+</html>
