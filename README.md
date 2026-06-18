@@ -11,7 +11,7 @@ A private, mobile-first video frame extractor that runs entirely in the browser.
 - Fully client-side processing—videos are never uploaded
 - Native video dimensions preserved in the exported image
 - Lossless PNG output
-- Interactive frame selector with timestamp preview
+- Interactive frame selector with timestamp preview and previous/next frame controls
 - Mobile-first, responsive interface
 - Tap-to-select and desktop drag-and-drop
 - No framework, build tool, account, or server required
